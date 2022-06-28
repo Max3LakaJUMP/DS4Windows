@@ -19,46 +19,46 @@ namespace DS4Windows
 {
     public class HideHelper
     {
-        List<ServiceController> services;
-        List<ServiceController> services_to_resume;
-        //List<Process> apps;
-        //List<string> apps_to_resume;
-        public HideHelper(List<string> stop_service_names, bool enabled = true)
+        static private List<string> stop_service_names = new List<string> {    "NvBroadcast.ContainerLocalSystem",
+                                                                                "NvContainerLocalSystem",
+                                                                                "Parsec",
+                                                                                "Steam Client Service"};
+        private List<ServiceController> services = new List<ServiceController>();
+        private List<ServiceController> services_to_resume = new List<ServiceController>();
+        public HideHelper()
         {
-            services = new List<ServiceController>();
-            services_to_resume = new List<ServiceController>();
-            //apps = new List<Process>();
-            //apps_to_resume = new List<string>();
-            if (!enabled)
-                return;
             System.ServiceProcess.ServiceController[] svcs = ServiceController.GetServices();
             foreach (var stop_service_name in stop_service_names) {
                 if (svcs.Any(serviceController => serviceController.ServiceName.Equals(stop_service_name)))
                     services.Add(new ServiceController(stop_service_name));
             }
-            //Process[] prs = Process.GetProcessesByName("worker");
-            //if (prs.Length > 0)
-            //    apps.Add(prs[0]);
         }
 
         public void stop()
         {
+            if (!Global.getUseExclusiveMode())
+                return;
+            List<ServiceController> services_to_wait = new List<ServiceController>();
             foreach (var service_to_stop in services)
             {
+                service_to_stop.Refresh();
                 if (service_to_stop.Status == ServiceControllerStatus.Running)
                 {
                     service_to_stop.Stop();
                     services_to_resume.Add(service_to_stop);
+                    services_to_wait.Add(service_to_stop);
                 }
             }
-
-            foreach (var service_to_resume in services_to_resume)
-                service_to_resume.WaitForStatus(ServiceControllerStatus.Stopped);
+            foreach (var service_to_wait in services_to_wait)
+                service_to_wait.WaitForStatus(ServiceControllerStatus.Stopped);
         }
         public void start()
         {
+            if (!Global.getUseExclusiveMode())
+                return;
             foreach (var service_to_resume in services_to_resume)
             {
+                service_to_resume.Refresh();
                 if (service_to_resume.Status == ServiceControllerStatus.Stopped)
                     service_to_resume.Start();
             }
@@ -67,6 +67,7 @@ namespace DS4Windows
     }
     public class ControlService
     {
+        private HideHelper helper = new HideHelper();
         public ViGEmClient vigemTestClient = null;
         // Might be useful for ScpVBus build
         public const int EXPANDED_CONTROLLER_COUNT = 8;
@@ -1200,13 +1201,8 @@ namespace DS4Windows
 
         public bool Start(bool showlog = true)
         {
-            List<string> stop_service_names = new List<string> {    "NvBroadcast.ContainerLocalSystem",
-                                                                    "NvContainerLocalSystem",
-                                                                    "Parsec",
-                                                                    "Steam Client Service"};
-            HideHelper helper = new HideHelper(stop_service_names, Global.getUseExclusiveMode());
-            helper.stop();
             inServiceTask = true;
+            helper.stop();
             StartViGEm();
             if (vigemTestClient != null)
             //if (x360Bus.Open() && x360Bus.Start())
@@ -1686,6 +1682,7 @@ namespace DS4Windows
                     {
                         if (DS4Controllers[Index] == null)
                         {
+                            helper.stop();
                             //LogDebug(DS4WinWPF.Properties.Resources.FoundController + device.getMacAddress() + " (" + device.getConnectionType() + ")");
                             LogDebug(DS4WinWPF.Properties.Resources.FoundController + " " + device.getMacAddress() + " (" + device.getConnectionType() + ") (" +
                                 device.DisplayName + ")");
@@ -1846,6 +1843,7 @@ namespace DS4Windows
                 }
 
                 inServiceTask = false;
+                helper.start();
             }
 
             return true;
