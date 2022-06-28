@@ -12,6 +12,7 @@ namespace DS4Windows.InputDevices
         Rigid,
         Pulse,
         FullClick,
+        Half,
     }
 
     public enum TriggerId : ushort

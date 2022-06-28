@@ -103,6 +103,16 @@ namespace DS4Windows.InputDevices
                         triggerPressedStrength = 0x00;
                         triggerActuationFrequency = 0x00;
                         break;
+                    case TriggerEffects.Half:
+                        triggerMotorMode = 0x01;
+                        triggerStartResistance = (byte)(100.0);
+                        triggerEffectForce = (byte)(255.0);
+                        triggerRangeForce = 0x00;
+                        triggerNearReleaseStrength = 0x00;
+                        triggerNearMiddleStrength = 0x00;
+                        triggerPressedStrength = 0x00;
+                        triggerActuationFrequency = 0x00;
+                        break;
                     default:
                         break;
                 }

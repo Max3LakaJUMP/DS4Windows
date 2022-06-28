@@ -1456,6 +1456,7 @@ namespace DS4WinWPF.DS4Forms.ViewModels
             new TriggerEffectChoice("Full Click", DS4Windows.InputDevices.TriggerEffects.FullClick),
             new TriggerEffectChoice("Rigid", DS4Windows.InputDevices.TriggerEffects.Rigid),
             new TriggerEffectChoice("Pulse", DS4Windows.InputDevices.TriggerEffects.Pulse),
+            new TriggerEffectChoice("Half", DS4Windows.InputDevices.TriggerEffects.Half),
         };
         public List<TriggerEffectChoice> TriggerEffectChoices { get => triggerEffectChoices; }
 
