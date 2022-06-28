@@ -13,9 +13,58 @@ using DS4WinWPF.DS4Control;
 using DS4Windows.DS4Control;
 using Nefarius.ViGEm.Client;
 using static DS4Windows.Global;
+using System.ServiceProcess;
 
 namespace DS4Windows
 {
+    public class HideHelper
+    {
+        List<ServiceController> services;
+        List<ServiceController> services_to_resume;
+        //List<Process> apps;
+        //List<string> apps_to_resume;
+        public HideHelper(List<string> stop_service_names, bool enabled = true)
+        {
+            services = new List<ServiceController>();
+            services_to_resume = new List<ServiceController>();
+            //apps = new List<Process>();
+            //apps_to_resume = new List<string>();
+            if (!enabled)
+                return;
+            System.ServiceProcess.ServiceController[] svcs = ServiceController.GetServices();
+            foreach (var stop_service_name in stop_service_names) {
+                if (svcs.Any(serviceController => serviceController.ServiceName.Equals(stop_service_name)))
+                    services.Add(new ServiceController(stop_service_name));
+            }
+            //Process[] prs = Process.GetProcessesByName("worker");
+            //if (prs.Length > 0)
+            //    apps.Add(prs[0]);
+        }
+
+        public void stop()
+        {
+            foreach (var service_to_stop in services)
+            {
+                if (service_to_stop.Status == ServiceControllerStatus.Running)
+                {
+                    service_to_stop.Stop();
+                    services_to_resume.Add(service_to_stop);
+                }
+            }
+
+            foreach (var service_to_resume in services_to_resume)
+                service_to_resume.WaitForStatus(ServiceControllerStatus.Stopped);
+        }
+        public void start()
+        {
+            foreach (var service_to_resume in services_to_resume)
+            {
+                if (service_to_resume.Status == ServiceControllerStatus.Stopped)
+                    service_to_resume.Start();
+            }
+            services_to_resume.Clear();
+        }
+    }
     public class ControlService
     {
         public ViGEmClient vigemTestClient = null;
@@ -1151,6 +1200,12 @@ namespace DS4Windows
 
         public bool Start(bool showlog = true)
         {
+            List<string> stop_service_names = new List<string> {    "NvBroadcast.ContainerLocalSystem",
+                                                                    "NvContainerLocalSystem",
+                                                                    "Parsec",
+                                                                    "Steam Client Service"};
+            HideHelper helper = new HideHelper(stop_service_names, Global.getUseExclusiveMode());
+            helper.stop();
             inServiceTask = true;
             StartViGEm();
             if (vigemTestClient != null)
@@ -1403,6 +1458,7 @@ namespace DS4Windows
             runHotPlug = true;
             ServiceStarted?.Invoke(this, EventArgs.Empty);
             RunningChanged?.Invoke(this, EventArgs.Empty);
+            helper.start();
             return true;
         }
 
